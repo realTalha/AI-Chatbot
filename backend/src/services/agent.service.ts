@@ -66,6 +66,7 @@ function getModel() {
     apiKey: process.env.OPENROUTER_API_KEY,
   });
 
+  // Use a valid free model from OpenRouter
   const modelName = process.env.AI_MODEL ?? "meta-llama/llama-3.1-8b-instruct:free";
   return openrouter(modelName);
 }
@@ -131,20 +132,52 @@ export async function streamAgentReply(input: StreamAgentReplyInput) {
   ];
 
   let fullResponse = "";
+  let streamedChunks = 0;
 
   try {
+    console.log("Streaming with model:", process.env.AI_MODEL ?? "meta-llama/llama-3.1-8b-instruct:free");
+    
     const result = await streamText({
       model: getModel(),
       messages,
-      maxTokens: 2000,
+      maxTokens: 4000,
       temperature: 0.7,
     });
 
+    // Stream the text response
     for await (const textPart of result.textStream) {
-      fullResponse += textPart;
+      if (textPart && textPart.length > 0) {
+        fullResponse += textPart;
+        streamedChunks++;
+        input.onEvent({
+          type: "token",
+          token: textPart,
+        });
+      }
+    }
+
+    console.log(`Received ${streamedChunks} chunks, total length: ${fullResponse.length}`);
+
+    // Ensure we have a response
+    if (!fullResponse || fullResponse.trim().length === 0) {
+      console.error("Empty response from model");
+      
+      // Provide a helpful fallback message
+      const fallbackMessage = "I apologize, but I couldn't generate a response. This might be due to:\n\n" +
+        "- The AI model being temporarily unavailable\n" +
+        "- Rate limits being reached\n" +
+        "- The question containing an unusual name combination\n\n" +
+        "Please try:\n" +
+        "1. Rephrasing your question\n" +
+        "2. Asking something different\n" +
+        "3. Waiting a moment and trying again";
+      
+      fullResponse = fallbackMessage;
+      
+      // Stream the fallback message
       input.onEvent({
         type: "token",
-        token: textPart,
+        token: fallbackMessage,
       });
     }
 
@@ -173,10 +206,18 @@ export async function streamAgentReply(input: StreamAgentReplyInput) {
       message: "done",
     });
   } catch (error) {
+    console.error("Agent streaming error:", error);
+    
+    // Provide a user-friendly error message
+    const errorMsg = error instanceof Error 
+      ? `AI Error: ${error.message}` 
+      : "The AI service encountered an error. Please try again.";
+    
     input.onEvent({
       type: "error",
-      message: error instanceof Error ? error.message : "Agent failed",
+      message: errorMsg,
     });
+    
     throw error;
   }
 }

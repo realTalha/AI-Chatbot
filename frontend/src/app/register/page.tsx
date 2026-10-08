@@ -98,9 +98,9 @@ export default function RegisterPage() {
                 style={styles.eyeButton}
               >
                 {showPassword ? (
-                  <EyeOff size={20} color="#6b7280" />
+                  <EyeOff size={20} color="#9ca3af" />
                 ) : (
-                  <Eye size={20} color="#6b7280" />
+                  <Eye size={20} color="#9ca3af" />
                 )}
               </button>
             </div>
@@ -124,9 +124,9 @@ export default function RegisterPage() {
                 style={styles.eyeButton}
               >
                 {showConfirmPassword ? (
-                  <EyeOff size={20} color="#6b7280" />
+                  <EyeOff size={20} color="#9ca3af" />
                 ) : (
-                  <Eye size={20} color="#6b7280" />
+                  <Eye size={20} color="#9ca3af" />
                 )}
               </button>
             </div>
@@ -156,32 +156,43 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f3f4f6",
+    background: "linear-gradient(135deg, #0a0b0f 0%, #13151a 50%, #0a0b0f 100%)",
     padding: "1rem",
+    position: "relative" as const,
+    overflow: "hidden",
   },
   card: {
     width: "100%",
-    maxWidth: "400px",
-    backgroundColor: "white",
-    padding: "2rem",
-    borderRadius: "8px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+    maxWidth: "420px",
+    background: "linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(91, 33, 182, 0.05) 100%)",
+    padding: "2.5rem",
+    borderRadius: "16px",
+    border: "1px solid rgba(139, 92, 246, 0.2)",
+    backdropFilter: "blur(10px)",
+    boxShadow: "0 0 40px rgba(124, 58, 237, 0.2), 0 20px 60px rgba(0, 0, 0, 0.5)",
+    position: "relative" as const,
+    zIndex: 1,
   },
   title: {
-    fontSize: "1.875rem",
+    fontSize: "2rem",
     fontWeight: "bold",
     textAlign: "center" as const,
     marginBottom: "0.5rem",
+    background: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
   },
   subtitle: {
     textAlign: "center" as const,
-    color: "#6b7280",
+    color: "#9ca3af",
     marginBottom: "2rem",
+    fontSize: "0.95rem",
   },
   form: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "1rem",
+    gap: "1.25rem",
   },
   field: {
     display: "flex",
@@ -191,14 +202,17 @@ const styles = {
   label: {
     fontSize: "0.875rem",
     fontWeight: "500",
-    color: "#374151",
+    color: "#e8eaed",
   },
   input: {
-    padding: "0.625rem",
-    border: "1px solid #d1d5db",
-    borderRadius: "6px",
+    padding: "0.75rem",
+    border: "1px solid rgba(139, 92, 246, 0.3)",
+    borderRadius: "8px",
     fontSize: "1rem",
     outline: "none",
+    backgroundColor: "rgba(19, 21, 26, 0.8)",
+    color: "#e8eaed",
+    transition: "all 0.2s ease",
   },
   passwordContainer: {
     position: "relative" as const,
@@ -206,17 +220,20 @@ const styles = {
     alignItems: "center",
   },
   passwordInput: {
-    padding: "0.625rem",
-    paddingRight: "2.5rem",
-    border: "1px solid #d1d5db",
-    borderRadius: "6px",
+    padding: "0.75rem",
+    paddingRight: "2.75rem",
+    border: "1px solid rgba(139, 92, 246, 0.3)",
+    borderRadius: "8px",
     fontSize: "1rem",
     outline: "none",
     width: "100%",
+    backgroundColor: "rgba(19, 21, 26, 0.8)",
+    color: "#e8eaed",
+    transition: "all 0.2s ease",
   },
   eyeButton: {
     position: "absolute" as const,
-    right: "0.625rem",
+    right: "0.75rem",
     background: "none",
     border: "none",
     cursor: "pointer",
@@ -224,34 +241,40 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    color: "#9ca3af",
+    transition: "color 0.2s ease",
   },
   button: {
-    padding: "0.75rem",
-    backgroundColor: "#2563eb",
+    padding: "0.875rem",
+    background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
     color: "white",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "8px",
     fontSize: "1rem",
-    fontWeight: "500",
+    fontWeight: "600",
     cursor: "pointer",
     marginTop: "0.5rem",
+    transition: "all 0.2s ease",
+    boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)",
   },
   error: {
-    padding: "0.75rem",
-    backgroundColor: "#fee2e2",
-    color: "#dc2626",
-    borderRadius: "6px",
+    padding: "0.875rem",
+    backgroundColor: "rgba(220, 38, 38, 0.15)",
+    color: "#fca5a5",
+    borderRadius: "8px",
     fontSize: "0.875rem",
+    border: "1px solid rgba(220, 38, 38, 0.3)",
   },
   footer: {
     marginTop: "1.5rem",
     textAlign: "center" as const,
     fontSize: "0.875rem",
-    color: "#6b7280",
+    color: "#9ca3af",
   },
   link: {
-    color: "#2563eb",
+    color: "#a78bfa",
     textDecoration: "none",
     fontWeight: "500",
+    transition: "color 0.2s ease",
   },
 };

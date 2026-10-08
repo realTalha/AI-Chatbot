@@ -51,6 +51,7 @@ const styles = {
     justifyContent: "center",
     minHeight: "100vh",
     fontSize: "1rem",
-    color: "#6b7280",
+    color: "#9ca3af",
+    background: "linear-gradient(135deg, #0a0b0f 0%, #13151a 50%, #0a0b0f 100%)",
   },
 };
