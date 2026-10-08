@@ -11,25 +11,52 @@ type Message = {
   content: string;
 };
 
-const WELCOME = "Hi! I'm your AI assistant. Ask me anything - I'm here to help with questions, ideas, or just chat.";
+const SUGGESTION_CATEGORIES = {
+  general: [
+    "What can you help me with?",
+    "Tell me about your capabilities",
+    "How do I get started?",
+    "What kind of questions can I ask?",
+  ],
+  productivity: [
+    "Help me brainstorm ideas",
+    "Explain a complex topic simply",
+    "Review and improve my writing",
+    "Help me solve a problem",
+  ],
+  news: [
+    "What's happening in the world today?",
+    "Show me the latest news headlines",
+    "Any important updates today?",
+    "What's trending right now?",
+  ],
+  tech: [
+    "Latest technology news",
+    "What's new in AI development?",
+    "Tell me about recent tech innovations",
+    "Explain a programming concept",
+  ],
+};
 
-const SUGGESTIONS = [
-  "What can you help me with?",
-  "Explain quantum computing simply",
-  "Help me brainstorm project ideas",
-  "What are the latest trends in AI?",
-];
+function getRandomSuggestions(): string[] {
+  const categories = Object.values(SUGGESTION_CATEGORIES);
+  const allSuggestions = categories.flat();
+  const shuffled = [...allSuggestions].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 4);
+}
 
 export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () => void; userEmail: string }) {
   const [threadId, setThreadId] = useState(() => crypto.randomUUID());
-  const [messages, setMessages] = useState<Message[]>([{ id: "welcome", role: "assistant", content: WELCOME }]);
+  const [messages, setMessages] = useState<Message[]>([{ id: "welcome", role: "assistant", content: "" }]);
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [prompt, setPrompt] = useState("");
   const [running, setRunning] = useState(false);
   const [loadingThread, setLoadingThread] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>(() => getRandomSuggestions());
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const showEmpty = messages.length === 1 && messages[0]?.id === "welcome" && !running;
 
@@ -51,8 +78,9 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
   function startNewChat() {
     if (running) return;
     setThreadId(crypto.randomUUID());
-    setMessages([{ id: "welcome", role: "assistant", content: WELCOME }]);
+    setMessages([{ id: "welcome", role: "assistant", content: "" }]);
     setPrompt("");
+    setSuggestions(getRandomSuggestions());
   }
 
   async function resumeThread(nextThreadId: string) {
@@ -63,7 +91,7 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
     try {
       const data = await loadThread(nextThreadId);
       setThreadId(data.threadId);
-      setMessages(data.messages.length > 0 ? data.messages : [{ id: "welcome", role: "assistant", content: WELCOME }]);
+      setMessages(data.messages.length > 0 ? data.messages : [{ id: "welcome", role: "assistant", content: "" }]);
       setPrompt("");
     } catch {
       setMessages((current) => [
@@ -137,6 +165,18 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
     }
   }
 
+  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setPrompt(e.target.value);
+    
+    // Auto-resize textarea
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      const newHeight = Math.min(textarea.scrollHeight, 120); // Max 120px (2.5x of ~48px)
+      textarea.style.height = `${newHeight}px`;
+    }
+  }
+
   return (
     <div style={styles.root}>
       <aside style={styles.aside}>
@@ -144,7 +184,7 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
           <div style={styles.brandLeft}>
             <Sparkles size={24} style={{ color: "#7c3aed" }} />
             <div>
-              <p style={styles.brandTitle}>AI Assistant</p>
+              <p style={styles.brandTitle}>Genie AI</p>
             </div>
           </div>
         </div>
@@ -198,13 +238,6 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
       </aside>
 
       <section style={styles.main}>
-        <header style={styles.header}>
-          <div style={styles.headerText}>
-            <p style={styles.headerTitle}>Assistant</p>
-            <p style={styles.headerSubtitle}>Your intelligent conversation partner</p>
-          </div>
-        </header>
-
         <div style={styles.chatColumn}>
           <div style={styles.messagesScroll}>
             <div style={styles.messagesInner}>
@@ -213,10 +246,10 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
                   <div style={styles.emptyIcon}>
                     <Sparkles size={32} />
                   </div>
-                  <h2 style={styles.emptyTitle}>AI Assistant</h2>
-                  <p style={styles.emptyCopy}>{WELCOME}</p>
+                  <h2 style={styles.emptyTitle}>Genie AI</h2>
+                  <p style={styles.emptyCopy}>Where simplicity meets brilliance - Your personal AI powerhouse for ideas, insights, and intelligent solutions.</p>
                   <div style={styles.suggestions}>
-                    {SUGGESTIONS.map((suggestion) => (
+                    {suggestions.map((suggestion) => (
                       <button
                         key={suggestion}
                         onClick={() => sendMessage(suggestion)}
@@ -285,8 +318,9 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
           <div style={styles.composerWrap}>
             <form onSubmit={onSubmit} style={styles.composerForm}>
               <textarea
+                ref={textareaRef}
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={handleInputChange}
                 rows={1}
                 onKeyDown={onKeyDown}
                 disabled={running}
@@ -305,54 +339,50 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
 }
 
 const styles = {
-  root: { display: "flex", height: "100vh", overflow: "hidden", background: "linear-gradient(135deg, #0a0b0f 0%, #13151a 50%, #0a0b0f 100%)" },
-  aside: { width: "280px", borderRight: "1px solid rgba(139, 92, 246, 0.15)", display: "flex", flexDirection: "column" as const, background: "linear-gradient(180deg, rgba(13, 14, 19, 0.95) 0%, rgba(10, 11, 15, 0.95) 100%)", backdropFilter: "blur(10px)" },
+  root: { display: "flex", height: "100vh", overflow: "hidden", backgroundImage: "linear-gradient(135deg, #0a0b0f 0%, #13151a 50%, #0a0b0f 100%)" },
+  aside: { width: "280px", borderRight: "1px solid rgba(139, 92, 246, 0.15)", display: "flex", flexDirection: "column" as const, backgroundImage: "linear-gradient(180deg, rgba(13, 14, 19, 0.95) 0%, rgba(10, 11, 15, 0.95) 100%)", backdropFilter: "blur(10px)" },
   brandRow: { padding: "1rem", borderBottom: "1px solid rgba(139, 92, 246, 0.15)" },
   brandLeft: { display: "flex", alignItems: "center", gap: "0.75rem" },
   brandTitle: { fontSize: "1.125rem", fontWeight: "600", color: "#e8eaed" },
   topActions: { padding: "1rem", display: "flex", flexDirection: "column" as const, gap: "0.5rem" },
-  newChatBtn: { display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", border: "1px solid rgba(139, 92, 246, 0.3)", borderRadius: "10px", background: "linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(91, 33, 182, 0.1) 100%)", cursor: "pointer", fontSize: "0.875rem", fontWeight: "500", color: "#c4b5fd", transition: "all 0.2s ease" },
-  separator: { height: "1px", background: "rgba(139, 92, 246, 0.15)", margin: "0 1rem" },
+  newChatBtn: { display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "10px", backgroundImage: "linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(91, 33, 182, 0.1) 100%)", cursor: "pointer", fontSize: "0.875rem", fontWeight: "500", color: "#c4b5fd", transition: "all 0.2s ease" },
+  separator: { height: "1px", backgroundColor: "rgba(139, 92, 246, 0.15)", marginLeft: "1rem", marginRight: "1rem" },
   chatsSection: { flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" as const, padding: "1rem" },
   chatsTitle: { fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" as const, color: "#9ca3af", marginBottom: "0.75rem", letterSpacing: "0.05em" },
   chatsScroll: { flex: 1, overflow: "auto" },
   chatsEmpty: { fontSize: "0.875rem", color: "#6b7280", padding: "0.5rem" },
   threadList: { display: "flex", flexDirection: "column" as const, gap: "0.35rem" },
-  threadBtn: { textAlign: "left" as const, padding: "0.75rem", borderRadius: "8px", border: "none", backgroundColor: "transparent", cursor: "pointer", width: "100%", transition: "all 0.2s ease" },
-  threadBtnActive: { background: "linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(91, 33, 182, 0.15) 100%)", borderLeft: "3px solid #7c3aed" },
+  threadBtn: { textAlign: "left" as const, padding: "0.75rem", borderRadius: "8px", borderStyle: "none", backgroundColor: "transparent", cursor: "pointer", width: "100%", transition: "all 0.2s ease" },
+  threadBtnActive: { backgroundImage: "linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(91, 33, 182, 0.15) 100%)", borderLeftWidth: "3px", borderLeftStyle: "solid" as const, borderLeftColor: "#7c3aed" },
   threadBtnIdle: { backgroundColor: "transparent" },
   threadTitle: { display: "block", fontSize: "0.875rem", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, color: "#e8eaed" },
   threadTime: { display: "block", fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.25rem" },
   footer: { borderTop: "1px solid rgba(139, 92, 246, 0.15)", padding: "1rem" },
   userLabel: { fontSize: "0.875rem", color: "#9ca3af", marginBottom: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const },
-  logoutBtn: { width: "100%", padding: "0.625rem", border: "1px solid rgba(139, 92, 246, 0.2)", borderRadius: "8px", background: "rgba(30, 31, 38, 0.6)", cursor: "pointer", fontSize: "0.875rem", color: "#e8eaed", fontWeight: "500", transition: "all 0.2s ease" },
+  logoutBtn: { width: "100%", padding: "0.625rem", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.2)", borderRadius: "8px", backgroundColor: "rgba(30, 31, 38, 0.6)", cursor: "pointer", fontSize: "0.875rem", color: "#e8eaed", fontWeight: "500", transition: "all 0.2s ease" },
   main: { flex: 1, display: "flex", flexDirection: "column" as const, overflow: "hidden" },
-  header: { padding: "1rem 1.5rem", borderBottom: "1px solid rgba(139, 92, 246, 0.15)", background: "rgba(13, 14, 19, 0.7)", backdropFilter: "blur(10px)" },
-  headerText: {},
-  headerTitle: { fontSize: "1.25rem", fontWeight: "600", color: "#e8eaed" },
-  headerSubtitle: { fontSize: "0.875rem", color: "#9ca3af", marginTop: "0.25rem" },
   chatColumn: { flex: 1, display: "flex", flexDirection: "column" as const, overflow: "hidden" },
-  messagesScroll: { flex: 1, overflow: "auto" },
-  messagesInner: { maxWidth: "768px", margin: "0 auto", padding: "2rem 1rem" },
-  emptyState: { textAlign: "center" as const, padding: "3rem 1rem" },
-  emptyIcon: { width: "72px", height: "72px", margin: "0 auto 1.5rem", background: "linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(91, 33, 182, 0.1) 100%)", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#a78bfa", boxShadow: "0 0 30px rgba(124, 58, 237, 0.3)" },
-  emptyTitle: { fontSize: "2.25rem", fontWeight: "700", marginBottom: "1rem", background: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" },
-  emptyCopy: { fontSize: "1rem", color: "#9ca3af", marginBottom: "2rem", maxWidth: "28rem", margin: "0 auto" },
+  messagesScroll: { flex: 1, overflowY: "auto" as const, overflowX: "hidden" as const, display: "flex" },
+  messagesInner: { maxWidth: "768px", marginLeft: "auto", marginRight: "auto", width: "100%", flex: 1, display: "flex", flexDirection: "column" as const },
+  emptyState: { textAlign: "center" as const, padding: "2rem 1rem", display: "flex", flexDirection: "column" as const, justifyContent: "center", alignItems: "center", flex: 1 },
+  emptyIcon: { width: "72px", height: "72px", marginLeft: "auto", marginRight: "auto", marginBottom: "1.5rem", backgroundImage: "linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(91, 33, 182, 0.1) 100%)", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#a78bfa", boxShadow: "0 0 30px rgba(124, 58, 237, 0.3)" },
+  emptyTitle: { fontSize: "2.25rem", fontWeight: "700", marginBottom: "1rem", backgroundImage: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" },
+  emptyCopy: { fontSize: "1rem", color: "#9ca3af", marginBottom: "2rem", maxWidth: "28rem", marginLeft: "auto", marginRight: "auto" },
   suggestions: { display: "flex", flexWrap: "wrap" as const, gap: "0.625rem", justifyContent: "center", marginTop: "2rem" },
-  suggestionBtn: { padding: "0.625rem 1.25rem", border: "1px solid rgba(139, 92, 246, 0.3)", borderRadius: "24px", background: "rgba(30, 31, 38, 0.6)", cursor: "pointer", fontSize: "0.875rem", color: "#c4b5fd", transition: "all 0.2s ease", fontWeight: "500" },
-  messageList: { display: "flex", flexDirection: "column" as const, gap: "1.5rem" },
+  suggestionBtn: { padding: "0.625rem 1.25rem", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "24px", backgroundColor: "rgba(30, 31, 38, 0.6)", cursor: "pointer", fontSize: "0.875rem", color: "#c4b5fd", transition: "all 0.2s ease", fontWeight: "500" },
+  messageList: { display: "flex", flexDirection: "column" as const, gap: "1.5rem", padding: "2rem 1rem" },
   statusRow: { display: "flex", alignItems: "center", gap: "0.625rem", fontSize: "0.875rem", color: "#9ca3af" },
   messageRow: { display: "flex", width: "100%" },
   messageRowUser: { justifyContent: "flex-end" },
   messageRowAssistant: { justifyContent: "flex-start" },
   bubble: { maxWidth: "85%", padding: "1rem 1.25rem", borderRadius: "16px", wordBreak: "break-word" as const },
-  bubbleUser: { background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", color: "white", borderBottomRightRadius: "4px", boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)" },
-  bubbleAssistant: { background: "linear-gradient(135deg, rgba(30, 31, 38, 0.8) 0%, rgba(19, 21, 26, 0.8) 100%)", color: "#e8eaed", borderBottomLeftRadius: "4px", border: "1px solid rgba(139, 92, 246, 0.15)" },
-  bubbleSystem: { background: "rgba(124, 58, 237, 0.1)", color: "#a78bfa", border: "1px solid rgba(124, 58, 237, 0.2)" },
+  bubbleUser: { backgroundImage: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", color: "white", borderBottomRightRadius: "4px", boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)" },
+  bubbleAssistant: { backgroundImage: "linear-gradient(135deg, rgba(30, 31, 38, 0.8) 0%, rgba(19, 21, 26, 0.8) 100%)", color: "#e8eaed", borderBottomLeftRadius: "4px", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.15)" },
+  bubbleSystem: { backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#a78bfa", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(124, 58, 237, 0.2)" },
   thinking: { display: "flex", alignItems: "center", gap: "0.625rem", fontSize: "0.875rem", color: "#9ca3af" },
   userText: { whiteSpace: "pre-wrap" as const, margin: 0, lineHeight: "1.6" },
-  composerWrap: { borderTop: "1px solid rgba(139, 92, 246, 0.15)", padding: "1.25rem", background: "rgba(10, 11, 15, 0.8)", backdropFilter: "blur(10px)" },
-  composerForm: { maxWidth: "768px", margin: "0 auto", display: "flex", gap: "0.75rem", alignItems: "flex-end", background: "linear-gradient(135deg, rgba(30, 31, 38, 0.8) 0%, rgba(19, 21, 26, 0.8) 100%)", border: "1px solid rgba(139, 92, 246, 0.3)", borderRadius: "16px", padding: "0.75rem", boxShadow: "0 0 30px rgba(124, 58, 237, 0.2)" },
-  composerInput: { flex: 1, padding: "0.75rem", border: "none", outline: "none", resize: "none" as const, fontSize: "1rem", maxHeight: "200px", background: "transparent", color: "#e8eaed" },
-  sendBtn: { width: "44px", height: "44px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", boxShadow: "0 0 20px rgba(124, 58, 237, 0.4)" },
+  composerWrap: { borderTop: "1px solid rgba(139, 92, 246, 0.15)", padding: "1.25rem", backgroundColor: "rgba(10, 11, 15, 0.8)", backdropFilter: "blur(10px)" },
+  composerForm: { maxWidth: "768px", marginLeft: "auto", marginRight: "auto", display: "flex", gap: "0.75rem", alignItems: "flex-end", backgroundImage: "linear-gradient(135deg, rgba(30, 31, 38, 0.8) 0%, rgba(19, 21, 26, 0.8) 100%)", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "16px", padding: "0.75rem", boxShadow: "0 0 30px rgba(124, 58, 237, 0.2)" },
+  composerInput: { flex: 1, padding: "0.625rem 0.75rem", borderStyle: "none", outline: "none", resize: "none" as const, fontSize: "1rem", height: "40px", maxHeight: "120px", overflowY: "auto" as const, backgroundColor: "transparent", color: "#e8eaed", lineHeight: "1.5" },
+  sendBtn: { width: "44px", height: "44px", borderRadius: "10px", borderStyle: "none", backgroundImage: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", boxShadow: "0 0 20px rgba(124, 58, 237, 0.4)" },
 };

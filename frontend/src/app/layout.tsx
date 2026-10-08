@@ -13,7 +13,7 @@ const heading = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "AI Assistant",
+  title: "Genie AI",
   description: "Simple AI chat assistant",
 };
 

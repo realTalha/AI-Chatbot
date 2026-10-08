@@ -35,7 +35,7 @@ export type ThreadMessage = {
   content: string;
 };
 
-const SYSTEM_INSTRUCTIONS = `You are a helpful AI assistant with working memory capabilities.
+const SYSTEM_INSTRUCTIONS = `You are a helpful Genie AI assistant with working memory capabilities.
 
 Memory:
 - Remember user preferences and context across conversations.

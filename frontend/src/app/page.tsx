@@ -30,9 +30,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.container}>
+    <>
+      <style jsx>{`
+        .auth-button:hover:not(:disabled) {
+          box-shadow: 0 0 30px rgba(124, 58, 237, 0.6);
+          filter: brightness(1.15);
+        }
+      `}</style>
+      <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>AI Assistant</h1>
+        <h1 style={styles.title}>Genie AI</h1>
         <p style={styles.subtitle}>Sign in to continue</p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -76,19 +83,20 @@ export default function LoginPage() {
 
           {error && <div style={styles.error}>{error}</div>}
 
-          <button type="submit" disabled={loading} style={styles.button}>
+          <button type="submit" disabled={loading} style={styles.button} className="auth-button">
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
         <p style={styles.footer}>
           Don't have an account?{" "}
-          <a href="/register" style={styles.link}>
-            Register
+          <a href="/signup" style={styles.link}>
+            Sign Up
           </a>
         </p>
       </div>
     </div>
+    </>
   );
 }
 
@@ -215,7 +223,7 @@ const styles = {
   },
   link: {
     color: "#a78bfa",
-    textDecoration: "none",
+    textDecoration: "underline",
     fontWeight: "500",
     transition: "color 0.2s ease",
   },

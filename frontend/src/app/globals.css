@@ -138,6 +138,31 @@
     }
   }
 
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  .text-shimmer {
+    background: linear-gradient(
+      90deg,
+      #c4b5fd 0%,
+      #7c3aed 25%,
+      #a78bfa 50%,
+      #7c3aed 75%,
+      #c4b5fd 100%
+    );
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+  }
+
   .composer-glow {
     box-shadow:
       0 0 0 1px rgba(124, 58, 237, 0.3),

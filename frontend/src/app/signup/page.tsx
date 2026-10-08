@@ -50,9 +50,16 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={styles.container}>
+    <>
+      <style jsx>{`
+        .auth-button:hover:not(:disabled) {
+          box-shadow: 0 0 30px rgba(124, 58, 237, 0.6);
+          filter: brightness(1.15);
+        }
+      `}</style>
+      <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.title}>AI Assistant</h1>
+        <h1 style={styles.title}>Genie AI</h1>
         <p style={styles.subtitle}>Create your account</p>
 
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -134,8 +141,8 @@ export default function RegisterPage() {
 
           {error && <div style={styles.error}>{error}</div>}
 
-          <button type="submit" disabled={loading} style={styles.button}>
-            {loading ? "Creating account..." : "Register"}
+          <button type="submit" disabled={loading} style={styles.button} className="auth-button">
+            {loading ? "Creating account..." : "Sign Up"}
           </button>
         </form>
 
@@ -147,6 +154,7 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }
 
@@ -159,13 +167,13 @@ const styles = {
     background: "linear-gradient(135deg, #0a0b0f 0%, #13151a 50%, #0a0b0f 100%)",
     padding: "1rem",
     position: "relative" as const,
-    overflow: "hidden",
+    overflowY: "auto" as const,
   },
   card: {
     width: "100%",
     maxWidth: "420px",
     background: "linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(91, 33, 182, 0.05) 100%)",
-    padding: "2.5rem",
+    padding: "1.25rem",
     borderRadius: "16px",
     border: "1px solid rgba(139, 92, 246, 0.2)",
     backdropFilter: "blur(10px)",
@@ -177,7 +185,7 @@ const styles = {
     fontSize: "2rem",
     fontWeight: "bold",
     textAlign: "center" as const,
-    marginBottom: "0.5rem",
+    marginBottom: "0.125rem",
     background: "linear-gradient(135deg, #c4b5fd 0%, #7c3aed 100%)",
     WebkitBackgroundClip: "text",
     WebkitTextFillColor: "transparent",
@@ -186,18 +194,18 @@ const styles = {
   subtitle: {
     textAlign: "center" as const,
     color: "#9ca3af",
-    marginBottom: "2rem",
-    fontSize: "0.95rem",
+    marginBottom: "1rem",
+    fontSize: "0.875rem",
   },
   form: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "1.25rem",
+    gap: "0.75rem",
   },
   field: {
     display: "flex",
     flexDirection: "column" as const,
-    gap: "0.5rem",
+    gap: "0.25rem",
   },
   label: {
     fontSize: "0.875rem",
@@ -205,7 +213,7 @@ const styles = {
     color: "#e8eaed",
   },
   input: {
-    padding: "0.75rem",
+    padding: "0.625rem",
     border: "1px solid rgba(139, 92, 246, 0.3)",
     borderRadius: "8px",
     fontSize: "1rem",
@@ -220,7 +228,7 @@ const styles = {
     alignItems: "center",
   },
   passwordInput: {
-    padding: "0.75rem",
+    padding: "0.625rem",
     paddingRight: "2.75rem",
     border: "1px solid rgba(139, 92, 246, 0.3)",
     borderRadius: "8px",
@@ -233,7 +241,7 @@ const styles = {
   },
   eyeButton: {
     position: "absolute" as const,
-    right: "0.75rem",
+    right: "0.625rem",
     background: "none",
     border: "none",
     cursor: "pointer",
@@ -245,35 +253,35 @@ const styles = {
     transition: "color 0.2s ease",
   },
   button: {
-    padding: "0.875rem",
+    padding: "0.625rem",
     background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
     color: "white",
     border: "none",
     borderRadius: "8px",
-    fontSize: "1rem",
+    fontSize: "0.95rem",
     fontWeight: "600",
     cursor: "pointer",
-    marginTop: "0.5rem",
+    marginTop: "0.125rem",
     transition: "all 0.2s ease",
     boxShadow: "0 0 20px rgba(124, 58, 237, 0.3)",
   },
   error: {
-    padding: "0.875rem",
+    padding: "0.5rem",
     backgroundColor: "rgba(220, 38, 38, 0.15)",
     color: "#fca5a5",
     borderRadius: "8px",
-    fontSize: "0.875rem",
+    fontSize: "0.8rem",
     border: "1px solid rgba(220, 38, 38, 0.3)",
   },
   footer: {
-    marginTop: "1.5rem",
+    marginTop: "0.75rem",
     textAlign: "center" as const,
-    fontSize: "0.875rem",
+    fontSize: "0.8rem",
     color: "#9ca3af",
   },
   link: {
     color: "#a78bfa",
-    textDecoration: "none",
+    textDecoration: "underline",
     fontWeight: "500",
     transition: "color 0.2s ease",
   },

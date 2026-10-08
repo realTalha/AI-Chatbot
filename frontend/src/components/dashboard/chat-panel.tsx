@@ -41,7 +41,7 @@ const styles = {
     "flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground",
   brandIconSvg: "size-4",
   brandText: "min-w-0",
-  brandTitle: "font-heading text-lg font-semibold tracking-tight",
+  brandTitle: "font-heading text-lg font-semibold tracking-tight text-shimmer",
   brandSubtitle: "truncate text-xs text-muted-foreground",
   mobileCloseBtn: "md:hidden",
   topActions: "space-y-3 px-3 pb-3",
@@ -77,7 +77,7 @@ const styles = {
   emptyIcon:
     "mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent text-accent-foreground",
   emptyIconSvg: "size-6",
-  emptyTitle: "font-heading text-3xl font-semibold tracking-tight sm:text-4xl",
+  emptyTitle: "font-heading text-3xl font-semibold tracking-tight sm:text-4xl text-shimmer",
   emptyCopy: "mt-3 max-w-md text-base leading-relaxed text-muted-foreground",
   suggestions: "mt-8 flex flex-wrap justify-center gap-2",
   suggestionBtn: "rounded-full border-border/80 bg-card/80 px-3.5 text-[13px]",
@@ -122,7 +122,7 @@ type Message = {
 };
 
 const WELCOME =
-  "Hi! I'm your AI assistant. Ask me anything - I'm here to help with questions, ideas, or just chat.";
+  "Hi! I'm your Genie AI assistant. Ask me anything - I'm here to help with questions, ideas, or just chat.";
 
 const SUGGESTIONS = [
   "What can you help me with?",
@@ -302,7 +302,7 @@ function ChatPanel({ sessionToken, footer }: Props) {
               <Sparkles className={styles.brandIconSvg} />
             </div>
             <div className={styles.brandText}>
-              <p className={styles.brandTitle}>AI Assistant</p>
+              <p className={styles.brandTitle}>Genie AI</p>
             </div>
           </div>
         </div>
@@ -374,7 +374,7 @@ function ChatPanel({ sessionToken, footer }: Props) {
                   <div className={styles.emptyIcon}>
                     <Sparkles className={styles.emptyIconSvg} />
                   </div>
-                  <h2 className={styles.emptyTitle}>AI Assistant</h2>
+                  <h2 className={styles.emptyTitle}>Genie AI</h2>
                   <p className={styles.emptyCopy}>{WELCOME}</p>
                   <div className={styles.suggestions}>
                     {SUGGESTIONS.map((currentSuggestionItem) => (
