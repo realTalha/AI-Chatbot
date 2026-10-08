@@ -3,17 +3,39 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/auth";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+
+    // Validation
+    if (!username.trim()) {
+      setError("Username is required");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -35,6 +57,18 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.field}>
+            <label style={styles.label}>Username</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              style={styles.input}
+              placeholder="Your username"
+            />
+          </div>
+
+          <div style={styles.field}>
             <label style={styles.label}>Email</label>
             <input
               type="email"
@@ -48,15 +82,54 @@ export default function RegisterPage() {
 
           <div style={styles.field}>
             <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              style={styles.input}
-              placeholder="At least 6 characters"
-            />
+            <div style={styles.passwordContainer}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                style={styles.passwordInput}
+                placeholder="At least 6 characters"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+              >
+                {showPassword ? (
+                  <EyeOff size={20} color="#6b7280" />
+                ) : (
+                  <Eye size={20} color="#6b7280" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Confirm Password</label>
+            <div style={styles.passwordContainer}>
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                style={styles.passwordInput}
+                placeholder="Re-enter your password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.eyeButton}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff size={20} color="#6b7280" />
+                ) : (
+                  <Eye size={20} color="#6b7280" />
+                )}
+              </button>
+            </div>
           </div>
 
           {error && <div style={styles.error}>{error}</div>}
@@ -126,6 +199,31 @@ const styles = {
     borderRadius: "6px",
     fontSize: "1rem",
     outline: "none",
+  },
+  passwordContainer: {
+    position: "relative" as const,
+    display: "flex",
+    alignItems: "center",
+  },
+  passwordInput: {
+    padding: "0.625rem",
+    paddingRight: "2.5rem",
+    border: "1px solid #d1d5db",
+    borderRadius: "6px",
+    fontSize: "1rem",
+    outline: "none",
+    width: "100%",
+  },
+  eyeButton: {
+    position: "absolute" as const,
+    right: "0.625rem",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    padding: "0.25rem",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   button: {
     padding: "0.75rem",
