@@ -49,5 +49,5 @@ app.use("/api/auth", authRoutes);
 app.use("/api/agent", agentRoutes);
 
 app.listen(port, () => {
-  console.log(`Genie AI App is running on port: ${port}`);
+  console.log(`Genie AI is running on port: ${port}`);
 });

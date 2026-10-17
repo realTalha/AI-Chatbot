@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUp, LoaderCircle, MessageSquarePlus, Sparkles } from "lucide-react";
+import { ArrowUp, LoaderCircle, MessageSquarePlus, Sparkles, MoreHorizontal, Pin, Trash2, Edit } from "lucide-react";
 import { listThreads, loadThread, streamAgentChat, ThreadSummary } from "@/lib/agent";
 import { MarkdownMessage } from "./markdown-message";
 
@@ -54,11 +54,119 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
   const [loadingThread, setLoadingThread] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>(() => getRandomSuggestions());
+  const [hoveredThreadId, setHoveredThreadId] = useState<string | null>(null);
+  const [showMenuForThread, setShowMenuForThread] = useState<string | null>(null);
+  const [pinnedThreadIds, setPinnedThreadIds] = useState<Set<string>>(new Set());
+  const [renamingThreadId, setRenamingThreadId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteConfirmThread, setDeleteConfirmThread] = useState<ThreadSummary | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const showEmpty = messages.length === 1 && messages[0]?.id === "welcome" && !running;
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowMenuForThread(null);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    }
+
+    if (showMenuForThread || showUserMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [showMenuForThread, showUserMenu]);
+
+  // Add style tag to customize scrollbar
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .chat-scroll-area {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+        overflow-y: scroll;
+      }
+      .chat-scroll-area::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      .chat-scroll-area::-webkit-scrollbar-button:single-button {
+        display: block;
+        height: 0px;
+        width: 0px;
+        border-style: none;
+        background-color: transparent;
+      }
+      .chat-scroll-area::-webkit-scrollbar-button:single-button:vertical:decrement {
+        height: 0px;
+        border-width: 0px;
+      }
+      .chat-scroll-area::-webkit-scrollbar-button:single-button:vertical:increment {
+        height: 0px;
+        border-width: 0px;
+      }
+      .chat-scroll-area::-webkit-scrollbar-track {
+        background: transparent;
+        border: none;
+      }
+      .chat-scroll-area::-webkit-scrollbar-track-piece {
+        background: transparent;
+      }
+      .chat-scroll-area::-webkit-scrollbar-thumb {
+        background: rgba(139, 92, 246, 0.3);
+        border-radius: 4px;
+        border: none;
+      }
+      .chat-scroll-area::-webkit-scrollbar-thumb:hover {
+        background: rgba(139, 92, 246, 0.5);
+      }
+      .chat-scroll-area::-webkit-scrollbar-corner {
+        background: transparent;
+      }
+      
+      .composer-form-hover {
+        transition: all 0.3s ease;
+      }
+      .composer-form-hover:hover {
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        box-shadow: 0 0 40px rgba(124, 58, 237, 0.35) !important;
+        background-image: linear-gradient(135deg, rgba(30, 31, 38, 0.9) 0%, rgba(19, 21, 26, 0.9) 100%) !important;
+      }
+      
+      .suggestion-btn-hover {
+        transition: all 0.3s ease;
+      }
+      .suggestion-btn-hover:hover:not(:disabled) {
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        box-shadow: 0 0 40px rgba(124, 58, 237, 0.35) !important;
+        background-color: rgba(30, 31, 38, 0.9) !important;
+      }
+      
+      .new-chat-btn-hover {
+        transition: all 0.3s ease;
+      }
+      .new-chat-btn-hover:hover:not(:disabled) {
+        border-color: rgba(139, 92, 246, 0.6) !important;
+        box-shadow: 0 0 40px rgba(124, 58, 237, 0.35) !important;
+        background-image: linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(91, 33, 182, 0.2) 100%) !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const refreshThreads = useCallback(async () => {
     try {
@@ -77,6 +185,9 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
 
   function startNewChat() {
     if (running) return;
+    // Don't start a new chat if already on an empty welcome chat
+    if (showEmpty) return;
+    
     setThreadId(crypto.randomUUID());
     setMessages([{ id: "welcome", role: "assistant", content: "" }]);
     setPrompt("");
@@ -174,8 +285,68 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
       textarea.style.height = "auto";
       const newHeight = Math.min(textarea.scrollHeight, 120); // Max 120px (2.5x of ~48px)
       textarea.style.height = `${newHeight}px`;
+      
+      // Show scroll only when content exceeds max height
+      if (textarea.scrollHeight > 120) {
+        textarea.style.overflowY = "auto";
+      } else {
+        textarea.style.overflowY = "hidden";
+      }
     }
   }
+
+  function handlePinThread(threadIdToPin: string) {
+    setPinnedThreadIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(threadIdToPin)) {
+        newSet.delete(threadIdToPin);
+      } else {
+        newSet.add(threadIdToPin);
+      }
+      return newSet;
+    });
+  }
+
+  function handleStartRename(thread: ThreadSummary) {
+    setRenamingThreadId(thread.id);
+    setRenameValue(thread.title);
+    setShowMenuForThread(null);
+  }
+
+  function handleRenameSubmit(threadIdToRename: string) {
+    if (renameValue.trim()) {
+      setThreads((prevThreads) =>
+        prevThreads.map((t) =>
+          t.id === threadIdToRename ? { ...t, title: renameValue.trim() } : t
+        )
+      );
+    }
+    setRenamingThreadId(null);
+    setRenameValue("");
+  }
+
+  function handleDeleteThread(threadIdToDelete: string) {
+    setThreads((prevThreads) => prevThreads.filter((t) => t.id !== threadIdToDelete));
+    setPinnedThreadIds((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(threadIdToDelete);
+      return newSet;
+    });
+    setShowMenuForThread(null);
+    setDeleteConfirmThread(null);
+    if (threadId === threadIdToDelete) {
+      startNewChat();
+    }
+  }
+
+  // Sort threads: pinned first, then by date
+  const sortedThreads = [...threads].sort((a, b) => {
+    const aIsPinned = pinnedThreadIds.has(a.id);
+    const bIsPinned = pinnedThreadIds.has(b.id);
+    if (aIsPinned && !bIsPinned) return -1;
+    if (!aIsPinned && bIsPinned) return 1;
+    return 0;
+  });
 
   return (
     <div style={styles.root}>
@@ -190,7 +361,7 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
         </div>
 
         <div style={styles.topActions}>
-          <button onClick={startNewChat} style={styles.newChatBtn} disabled={running}>
+          <button onClick={startNewChat} style={styles.newChatBtn} disabled={running} className="new-chat-btn-hover">
             <MessageSquarePlus size={16} />
             <span>New Chat</span>
           </button>
@@ -199,27 +370,119 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
         <div style={{ ...styles.separator }} />
 
         <div style={styles.chatsSection}>
-          <p style={styles.chatsTitle}>Chats</p>
-          <div style={styles.chatsScroll}>
+          <p style={styles.chatsTitle}>Recent Chats</p>
+          <div style={styles.chatsScroll} className="chat-scroll-area">
             {threads.length === 0 ? (
               <p style={styles.chatsEmpty}>No chats yet. Start one and it will show up here.</p>
             ) : (
               <div style={styles.threadList}>
-                {threads.map((thread) => {
+                {sortedThreads.map((thread) => {
                   const active = thread.id === threadId;
+                  const isHovered = hoveredThreadId === thread.id;
+                  const isMenuOpen = showMenuForThread === thread.id;
+                  const isPinned = pinnedThreadIds.has(thread.id);
+                  const isRenaming = renamingThreadId === thread.id;
                   return (
-                    <button
+                    <div
                       key={thread.id}
-                      onClick={() => resumeThread(thread.id)}
-                      disabled={running || loadingThread}
                       style={{
-                        ...styles.threadBtn,
-                        ...(active ? styles.threadBtnActive : styles.threadBtnIdle),
+                        ...styles.threadContainer,
+                        ...(isHovered ? styles.threadContainerHovered : {}),
                       }}
+                      onMouseEnter={() => setHoveredThreadId(thread.id)}
+                      onMouseLeave={() => setHoveredThreadId(null)}
                     >
-                      <span style={styles.threadTitle}>{thread.title}</span>
-                      <span style={styles.threadTime}>{new Date(thread.updatedAt).toLocaleString()}</span>
-                    </button>
+                      {isRenaming ? (
+                        <input
+                          type="text"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onBlur={() => handleRenameSubmit(thread.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleRenameSubmit(thread.id);
+                            } else if (e.key === "Escape") {
+                              setRenamingThreadId(null);
+                              setRenameValue("");
+                            }
+                          }}
+                          autoFocus
+                          style={styles.renameInput}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => resumeThread(thread.id)}
+                          disabled={running || loadingThread}
+                          style={{
+                            ...styles.threadBtn,
+                            ...(active ? styles.threadBtnActive : styles.threadBtnIdle),
+                          }}
+                        >
+                          <div style={styles.threadTitleRow}>
+                            {isPinned && (
+                              <Pin size={12} style={{ color: "#7c3aed", flexShrink: 0, transform: "rotate(45deg)" }} />
+                            )}
+                            <span style={styles.threadTitle}>{thread.title}</span>
+                          </div>
+                        </button>
+                      )}
+                      {(isHovered || isMenuOpen) && !isRenaming && (
+                        <div style={styles.threadActions}>
+                          <button
+                            style={styles.threadActionBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePinThread(thread.id);
+                            }}
+                            title={isPinned ? "Unpin chat" : "Pin chat"}
+                          >
+                            <Pin 
+                              size={15} 
+                              style={{ 
+                                color: isPinned ? "#7c3aed" : "#9ca3af",
+                                fill: isPinned ? "#7c3aed" : "none",
+                                transform: "rotate(45deg)"
+                              }} 
+                            />
+                          </button>
+                          <button
+                            style={styles.threadActionBtn}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowMenuForThread(isMenuOpen ? null : thread.id);
+                            }}
+                            title="More options"
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                        </div>
+                      )}
+                      {isMenuOpen && (
+                        <div ref={dropdownRef} style={styles.dropdownMenu}>
+                          <button
+                            style={styles.dropdownItem}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartRename(thread);
+                            }}
+                          >
+                            <Edit size={14} />
+                            <span>Rename</span>
+                          </button>
+                          <button
+                            style={styles.dropdownItemDanger}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmThread(thread);
+                              setShowMenuForThread(null);
+                            }}
+                          >
+                            <Trash2 size={14} />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -230,10 +493,38 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
         <div style={{ ...styles.separator }} />
 
         <div style={styles.footer}>
-          <div style={styles.userLabel}>{userEmail}</div>
-          <button onClick={onLogout} style={styles.logoutBtn}>
-            Log out
-          </button>
+          <div style={styles.userSection}>
+            <div style={styles.userInfo}>
+              <div style={styles.userAvatar}>
+                {userEmail.charAt(0).toUpperCase()}
+              </div>
+              <span style={styles.userName}>
+                {userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1)}
+              </span>
+            </div>
+            <div style={{ position: "relative" as const }}>
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                style={styles.userMenuBtn}
+                title="User options"
+              >
+                <MoreHorizontal size={18} />
+              </button>
+              {showUserMenu && (
+                <div ref={userMenuRef} style={styles.userDropdownMenu}>
+                  <button
+                    style={styles.userDropdownItem}
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onLogout();
+                    }}
+                  >
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -255,6 +546,7 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
                         onClick={() => sendMessage(suggestion)}
                         disabled={running || loadingThread}
                         style={styles.suggestionBtn}
+                        className="suggestion-btn-hover"
                       >
                         {suggestion}
                       </button>
@@ -316,7 +608,7 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
           </div>
 
           <div style={styles.composerWrap}>
-            <form onSubmit={onSubmit} style={styles.composerForm}>
+            <form onSubmit={onSubmit} style={styles.composerForm} className="composer-form-hover">
               <textarea
                 ref={textareaRef}
                 value={prompt}
@@ -334,6 +626,39 @@ export default function SimpleChatPanel({ onLogout, userEmail }: { onLogout: () 
           </div>
         </div>
       </section>
+
+      {/* Delete Confirmation Popup */}
+      {deleteConfirmThread && (
+        <>
+          <div style={styles.overlay} onClick={() => setDeleteConfirmThread(null)} />
+          <div style={styles.deleteModal}>
+            <div style={styles.deleteModalHeader}>
+              <div style={styles.deleteIconWrapper}>
+                <Trash2 size={24} style={{ color: "#ef4444" }} />
+              </div>
+              <h3 style={styles.deleteModalTitle}>Delete Chat?</h3>
+              <p style={styles.deleteModalMessage}>
+                Are you sure you want to delete <strong>"{deleteConfirmThread.title}"</strong>? This action cannot be undone.
+              </p>
+            </div>
+            <div style={styles.deleteModalActions}>
+              <button
+                onClick={() => setDeleteConfirmThread(null)}
+                style={styles.cancelBtn}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteThread(deleteConfirmThread.id)}
+                style={styles.deleteBtn}
+              >
+                <Trash2 size={16} />
+                Delete
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -347,19 +672,32 @@ const styles = {
   topActions: { padding: "1rem", display: "flex", flexDirection: "column" as const, gap: "0.5rem" },
   newChatBtn: { display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1rem", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "10px", backgroundImage: "linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(91, 33, 182, 0.1) 100%)", cursor: "pointer", fontSize: "0.875rem", fontWeight: "500", color: "#c4b5fd", transition: "all 0.2s ease" },
   separator: { height: "1px", backgroundColor: "rgba(139, 92, 246, 0.15)", marginLeft: "1rem", marginRight: "1rem" },
-  chatsSection: { flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" as const, padding: "1rem" },
-  chatsTitle: { fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" as const, color: "#9ca3af", marginBottom: "0.75rem", letterSpacing: "0.05em" },
-  chatsScroll: { flex: 1, overflow: "auto" },
+  chatsSection: { flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" as const, padding: "1rem", paddingRight: "0" },
+  chatsTitle: { fontSize: "0.75rem", fontWeight: "600", textTransform: "uppercase" as const, color: "#9ca3af", marginBottom: "0.75rem", letterSpacing: "0.05em", paddingLeft: "0.75rem" },
+  chatsScroll: { flex: 1, overflowY: "auto" as const, overflowX: "hidden" as const, paddingRight: "0.5rem", paddingLeft: "0" },
   chatsEmpty: { fontSize: "0.875rem", color: "#6b7280", padding: "0.5rem" },
-  threadList: { display: "flex", flexDirection: "column" as const, gap: "0.35rem" },
-  threadBtn: { textAlign: "left" as const, padding: "0.75rem", borderRadius: "8px", borderStyle: "none", backgroundColor: "transparent", cursor: "pointer", width: "100%", transition: "all 0.2s ease" },
+  threadList: { display: "flex", flexDirection: "column" as const, gap: "0.35rem", paddingLeft: "0" },
+  threadContainer: { position: "relative" as const, display: "flex", alignItems: "center", gap: "0.5rem", borderRadius: "8px", transition: "all 0.2s ease" },
+  threadContainerHovered: { backgroundColor: "rgba(124, 58, 237, 0.08)" },
+  threadBtn: { textAlign: "left" as const, padding: "0.75rem", borderRadius: "8px", borderStyle: "none", backgroundColor: "transparent", cursor: "pointer", flex: 1, transition: "all 0.2s ease" },
   threadBtnActive: { backgroundImage: "linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(91, 33, 182, 0.15) 100%)", borderLeftWidth: "3px", borderLeftStyle: "solid" as const, borderLeftColor: "#7c3aed" },
   threadBtnIdle: { backgroundColor: "transparent" },
   threadTitle: { display: "block", fontSize: "0.875rem", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const, color: "#e8eaed" },
-  threadTime: { display: "block", fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.25rem" },
+  threadTitleRow: { display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" },
+  renameInput: { flex: 1, padding: "0.5rem 0.75rem", backgroundColor: "rgba(30, 31, 38, 0.8)", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.5)", borderRadius: "6px", color: "#e8eaed", fontSize: "0.875rem", outline: "none" },
+  threadActions: { display: "flex", gap: "0.25rem", position: "absolute" as const, right: "0.5rem", backgroundColor: "rgba(13, 14, 19, 0.95)", padding: "0.25rem", borderRadius: "6px" },
+  threadActionBtn: { display: "flex", alignItems: "center", justifyContent: "center", width: "28px", height: "28px", borderRadius: "4px", borderStyle: "none", backgroundColor: "transparent", color: "#9ca3af", cursor: "pointer", transition: "all 0.2s ease" },
+  dropdownMenu: { position: "absolute" as const, top: "100%", right: "0.5rem", backgroundColor: "rgba(30, 31, 38, 0.98)", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "8px", padding: "0.5rem", marginTop: "0.25rem", zIndex: 10, minWidth: "140px", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)" },
+  dropdownItem: { display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", borderStyle: "none", backgroundColor: "transparent", color: "#e8eaed", fontSize: "0.875rem", borderRadius: "4px", cursor: "pointer", transition: "all 0.2s ease", textAlign: "left" as const },
+  dropdownItemDanger: { display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", borderStyle: "none", backgroundColor: "transparent", color: "#ef4444", fontSize: "0.875rem", borderRadius: "4px", cursor: "pointer", transition: "all 0.2s ease", textAlign: "left" as const },
   footer: { borderTop: "1px solid rgba(139, 92, 246, 0.15)", padding: "1rem" },
-  userLabel: { fontSize: "0.875rem", color: "#9ca3af", marginBottom: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const },
-  logoutBtn: { width: "100%", padding: "0.625rem", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.2)", borderRadius: "8px", backgroundColor: "rgba(30, 31, 38, 0.6)", cursor: "pointer", fontSize: "0.875rem", color: "#e8eaed", fontWeight: "500", transition: "all 0.2s ease" },
+  userSection: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" },
+  userInfo: { display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: 0 },
+  userAvatar: { width: "36px", height: "36px", borderRadius: "50%", backgroundImage: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "0.875rem", fontWeight: "600", flexShrink: 0 },
+  userName: { fontSize: "0.875rem", color: "#e8eaed", fontWeight: "500", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const },
+  userMenuBtn: { width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px", borderStyle: "none", backgroundColor: "transparent", color: "#9ca3af", cursor: "pointer", transition: "all 0.2s ease" },
+  userDropdownMenu: { position: "absolute" as const, bottom: "100%", right: "0", backgroundColor: "rgba(30, 31, 38, 0.98)", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "8px", padding: "0.5rem", marginBottom: "0.5rem", zIndex: 10, minWidth: "120px", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)" },
+  userDropdownItem: { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "0.625rem 0.75rem", borderStyle: "none", backgroundColor: "transparent", color: "#e8eaed", fontSize: "0.875rem", borderRadius: "4px", cursor: "pointer", transition: "all 0.2s ease", textAlign: "center" as const, fontWeight: "500" },
   main: { flex: 1, display: "flex", flexDirection: "column" as const, overflow: "hidden" },
   chatColumn: { flex: 1, display: "flex", flexDirection: "column" as const, overflow: "hidden" },
   messagesScroll: { flex: 1, overflowY: "auto" as const, overflowX: "hidden" as const, display: "flex" },
@@ -383,6 +721,15 @@ const styles = {
   userText: { whiteSpace: "pre-wrap" as const, margin: 0, lineHeight: "1.6" },
   composerWrap: { borderTop: "1px solid rgba(139, 92, 246, 0.15)", padding: "1.25rem", backgroundColor: "rgba(10, 11, 15, 0.8)", backdropFilter: "blur(10px)" },
   composerForm: { maxWidth: "768px", marginLeft: "auto", marginRight: "auto", display: "flex", gap: "0.75rem", alignItems: "flex-end", backgroundImage: "linear-gradient(135deg, rgba(30, 31, 38, 0.8) 0%, rgba(19, 21, 26, 0.8) 100%)", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "16px", padding: "0.75rem", boxShadow: "0 0 30px rgba(124, 58, 237, 0.2)" },
-  composerInput: { flex: 1, padding: "0.625rem 0.75rem", borderStyle: "none", outline: "none", resize: "none" as const, fontSize: "1rem", height: "40px", maxHeight: "120px", overflowY: "auto" as const, backgroundColor: "transparent", color: "#e8eaed", lineHeight: "1.5" },
+  composerInput: { flex: 1, padding: "0.625rem 0.75rem", borderStyle: "none", outline: "none", resize: "none" as const, fontSize: "1rem", height: "44px", maxHeight: "120px", overflowY: "hidden" as const, backgroundColor: "transparent", color: "#e8eaed", lineHeight: "1.6" },
   sendBtn: { width: "44px", height: "44px", borderRadius: "10px", borderStyle: "none", backgroundImage: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", color: "white", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease", boxShadow: "0 0 20px rgba(124, 58, 237, 0.4)" },
+  overlay: { position: "fixed" as const, inset: 0, backgroundColor: "rgba(0, 0, 0, 0.6)", backdropFilter: "blur(4px)", zIndex: 50, animation: "fadeIn 0.2s ease" },
+  deleteModal: { position: "fixed" as const, top: "50%", left: "50%", transform: "translate(-50%, -50%)", backgroundColor: "rgba(19, 21, 26, 0.98)", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "16px", padding: "2rem", maxWidth: "420px", width: "90%", zIndex: 51, boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(124, 58, 237, 0.2)" },
+  deleteModalHeader: { textAlign: "center" as const, marginBottom: "2rem" },
+  deleteIconWrapper: { width: "64px", height: "64px", marginLeft: "auto", marginRight: "auto", marginBottom: "1rem", backgroundColor: "rgba(239, 68, 68, 0.1)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", borderWidth: "2px", borderStyle: "solid", borderColor: "rgba(239, 68, 68, 0.3)" },
+  deleteModalTitle: { fontSize: "1.5rem", fontWeight: "600", color: "#e8eaed", marginBottom: "0.75rem", margin: 0 },
+  deleteModalMessage: { fontSize: "0.9375rem", color: "#9ca3af", lineHeight: "1.6", margin: 0 },
+  deleteModalActions: { display: "flex", gap: "0.75rem", justifyContent: "center" },
+  cancelBtn: { flex: 1, padding: "0.75rem 1.5rem", borderWidth: "1px", borderStyle: "solid", borderColor: "rgba(139, 92, 246, 0.3)", borderRadius: "10px", backgroundColor: "rgba(30, 31, 38, 0.6)", color: "#e8eaed", fontSize: "0.9375rem", fontWeight: "500", cursor: "pointer", transition: "all 0.2s ease" },
+  deleteBtn: { flex: 1, padding: "0.75rem 1.5rem", borderRadius: "10px", borderStyle: "none", backgroundImage: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "white", fontSize: "0.9375rem", fontWeight: "500", cursor: "pointer", transition: "all 0.2s ease", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", boxShadow: "0 4px 12px rgba(239, 68, 68, 0.3)" },
 };
