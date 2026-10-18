@@ -27,9 +27,10 @@ app.use(
     proxy: true, // Trust Railway's proxy
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      secure: true, // Always use secure cookies
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Cross-site for production
+      sameSite: "none", // Allow cross-origin cookies
+      domain: undefined, // Let browser determine domain
     },
   }),
 );
