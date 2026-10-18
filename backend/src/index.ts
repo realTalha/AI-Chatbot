@@ -24,10 +24,12 @@ app.use(
     secret: process.env.SESSION_SECRET ?? "change-this-secret-in-production",
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Trust Railway's proxy
     cookie: {
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Cross-site for production
     },
   }),
 );
