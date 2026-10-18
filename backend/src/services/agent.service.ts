@@ -1,4 +1,4 @@
-import { streamText, CoreMessage } from "ai";
+import { streamText, type ModelMessage } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
   getOrCreateThread,
@@ -123,7 +123,7 @@ export async function streamAgentReply(input: StreamAgentReplyInput) {
   const history = await getThreadMessagesFromDb(input.threadId);
   
   // Build messages array for AI SDK
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     { role: "system", content: SYSTEM_INSTRUCTIONS },
     ...history.slice(-20).map((msg) => ({
       role: msg.role as "user" | "assistant" | "system",
@@ -140,7 +140,7 @@ export async function streamAgentReply(input: StreamAgentReplyInput) {
     const result = await streamText({
       model: getModel(),
       messages,
-      maxTokens: 4000,
+      maxOutputTokens: 4000,
       temperature: 0.7,
     });
 
