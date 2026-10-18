@@ -13,8 +13,8 @@ export async function createUser(input: {
 }): Promise<UserRow> {
   const result = await getPool().query<UserRow>(
     `
-    INSERT INTO users (email, password)
-    VALUES ($1, $2)
+    INSERT INTO users (id, email, password)
+    VALUES (gen_random_uuid()::TEXT, $1, $2)
     RETURNING *
     `,
     [input.email, input.password],
